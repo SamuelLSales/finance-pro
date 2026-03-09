@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if t else 'Nova' }} Transação — FinanceApp{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ 'Editar' if t else 'Nova' }} Transação</h1>
+    <p class="page-sub">Preencha os dados abaixo</p>
+  </div>
+  <a href="{{ url_for('transacoes') }}" class="btn btn-ghost">← Voltar</a>
+</div>
+
+<div class="form-page">
+  <section class="card form-card">
+    <form method="POST" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="type" class="form-label">Tipo <span aria-label="obrigatório">*</span></label>
+          <select id="type" name="type" class="form-input" required aria-required="true">
+            <option value="receita" {% if t and t.type=='receita' %}selected{% endif %}>💹 Receita</option>
+            <option value="despesa" {% if t and t.type=='despesa' or not t %}selected{% endif %}>💸 Despesa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="amount" class="form-label">Valor (R$) <span aria-label="obrigatório">*</span></label>
+          <input id="amount" name="amount" type="text" class="form-input text-mono"
+                 placeholder="0,00" value="{{ '%.2f'|format(t.amount) if t else '' }}"
+                 required aria-required="true" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Descrição <span aria-label="obrigatório">*</span></label>
+        <input id="description" name="description" type="text" class="form-input"
+               placeholder="Ex: Salário, Supermercado..." maxlength="200"
+               value="{{ t.description if t else '' }}" required aria-required="true">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="category_id" class="form-label">Categoria</label>
+          <select id="category_id" name="category_id" class="form-input">
+            <option value="">Sem categoria</option>
+            <optgroup label="Receitas">
+              {% for c in cats if c.type=='receita' %}
+              <option value="{{ c.id }}" {% if t and t.category_id==c.id %}selected{% endif %}>
+                {{ c.icon }} {{ c.name }}
+              </option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Despesas">
+              {% for c in cats if c.type=='despesa' %}
+              <option value="{{ c.id }}" {% if t and t.category_id==c.id %}selected{% endif %}>
+                {{ c.icon }} {{ c.name }}
+              </option>
+              {% endfor %}
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="date" class="form-label">Data <span aria-label="obrigatório">*</span></label>
+          <input id="date" name="date" type="date" class="form-input"
+                 value="{{ default_date }}" required aria-required="true">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="notes" class="form-label">Observações</label>
+        <textarea id="notes" name="notes" class="form-input form-textarea"
+                  placeholder="Notas adicionais..." maxlength="500" rows="3">{{ t.notes if t else '' }}</textarea>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('transacoes') }}" class="btn btn-ghost">Cancelar</a>
+        <button type="submit" class="btn btn-primary">
+          {{ 'Salvar Alterações' if t else 'Registrar Transação' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Metas e Orçamentos — FinançasPro{% endblock %}
+{% block page_title %}Metas e Orçamentos{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <!-- METAS -->
+  <div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="font-size:17px;font-weight:700">🎯 Metas de Economia</h2>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalMeta')">➕ Nova Meta</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      {% if goals %}
+      {% for g in goals %}
+      {% set pct = [[(g.current_amount / g.target_amount * 100) if g.target_amount > 0 else 0, 0]|max, 100]|min %}
+      {% set remaining = g.target_amount - g.current_amount %}
+      <div class="card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:40px;height:40px;border-radius:10px;background:{{ g.color }}22;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid {{ g.color }}44">🎯</div>
+            <div>
+              <div style="font-weight:700;font-size:15px">{{ g.name }}</div>
+              {% if g.deadline %}<div style="font-size:12px;color:var(--text3)">Prazo: {{ g.deadline }}</div>{% endif %}
+            </div>
+          </div>
+          <form method="POST" action="{{ url_for('excluir_meta', gid=g.id) }}" onsubmit="return confirm('Excluir meta?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm" aria-label="Excluir meta {{ g.name }}">🗑️</button>
+          </form>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:var(--text2)">R$ {{ '{:,.2f}'.format(g.current_amount).replace(',','X').replace('.',',').replace('X','.') }} economizados</span>
+          <span style="font-weight:700;color:{{ g.color }}">{{ pct|round|int }}%</span>
+        </div>
+        <div class="progress-bar" style="height:10px">
+          <div class="progress-fill" style="width:{{ pct }}%;background:{{ g.color }}"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-top:6px">
+          <span>Meta: R$ {{ '{:,.2f}'.format(g.target_amount).replace(',','X').replace('.',',').replace('X','.') }}</span>
+          <span>Falta: R$ {{ '{:,.2f}'.format([remaining,0]|max).replace(',','X').replace('.',',').replace('X','.') }}</span>
+        </div>
+        <details style="margin-top:10px">
+          <summary style="font-size:12px;color:var(--accent);cursor:pointer">Atualizar valor economizado</summary>
+          <form method="POST" action="{{ url_for('atualizar_meta', gid=g.id) }}" style="display:flex;gap:8px;margin-top:8px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="number" name="current_amount" class="form-control" value="{{ g.current_amount }}" step="0.01" min="0" style="flex:1">
+            <button type="submit" class="btn btn-success btn-sm">Salvar</button>
+          </form>
+        </details>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="card"><div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-title">Nenhuma meta criada</div><p>Defina metas financeiras para acompanhar seu progresso</p></div></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ORÇAMENTOS -->
+  <div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 style="font-size:17px;font-weight:700">💼 Orçamentos por Categoria</h2>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalOrcamento')">➕ Novo Orçamento</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      {% if budgets %}
+      {% for b in budgets %}
+      {% set pct = [(b.spent / b.amount * 100) if b.amount > 0 else 0, 100]|min %}
+      {% set over = b.spent > b.amount %}
+      <div class="card" style="border-left:4px solid {{ b.cat_color or '#94a3b8' }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:22px">{{ b.cat_icon }}</span>
+            <div>
+              <div style="font-weight:600;font-size:14px">{{ b.cat_name }}</div>
+              <div style="font-size:11px;color:var(--text3)">{{ b.month }}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            {% if over %}<span class="badge badge-red">⚠️ Excedido</span>{% endif %}
+            <form method="POST" action="{{ url_for('excluir_orcamento', bid=b.id) }}" onsubmit="return confirm('Excluir orçamento?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm" aria-label="Excluir orçamento {{ b.cat_name }}">🗑️</button>
+            </form>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span>Gasto: <strong>R$ {{ '{:,.2f}'.format(b.spent).replace(',','X').replace('.',',').replace('X','.') }}</strong></span>
+          <span>Limite: <strong>R$ {{ '{:,.2f}'.format(b.amount).replace(',','X').replace('.',',').replace('X','.') }}</strong></span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:{{ pct }}%;background:{{ '#dc2626' if pct>=100 else '#d97706' if pct>70 else b.cat_color or 'var(--green)' }}"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;text-align:right">{{ pct|round|int }}% utilizado</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="card"><div class="empty-state"><div class="empty-state-icon">💼</div><div class="empty-state-title">Nenhum orçamento definido</div><p>Defina limites de gastos por categoria</p></div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal Meta -->
+<div class="modal-overlay" id="modalMeta" role="dialog" aria-modal="true" aria-labelledby="metaTitle" onclick="if(event.target===this)closeModal('modalMeta')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="metaTitle">🎯 Nova Meta</span>
+      <button class="modal-close" onclick="closeModal('modalMeta')" aria-label="Fechar">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('nova_meta') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label class="form-label">Nome da Meta *</label><input type="text" name="name" class="form-control" placeholder="Ex: Fundo de emergência" required></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Valor Alvo (R$) *</label><input type="number" name="target_amount" class="form-control" placeholder="0,00" step="0.01" min="0.01" required></div>
+        <div class="form-group"><label class="form-label">Já Economizei (R$)</label><input type="number" name="current_amount" class="form-control" placeholder="0,00" step="0.01" min="0" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Prazo</label><input type="date" name="deadline" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Cor</label><input type="color" name="color" class="form-control" value="#6366f1" style="padding:4px;height:40px"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalMeta')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Criar Meta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Orçamento -->
+<div class="modal-overlay" id="modalOrcamento" role="dialog" aria-modal="true" aria-labelledby="orcTitle" onclick="if(event.target===this)closeModal('modalOrcamento')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="orcTitle">💼 Novo Orçamento</span>
+      <button class="modal-close" onclick="closeModal('modalOrcamento')" aria-label="Fechar">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('novo_orcamento') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label class="form-label">Categoria *</label>
+        <select name="category_id" class="form-control" required>
+          <option value="">Selecione...</option>
+          {% for c in cats %}{% if c.type=='despesa' %}<option value="{{ c.id }}">{{ c.icon }} {{ c.name }}</option>{% endif %}{% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Limite Mensal (R$) *</label><input type="number" name="amount" class="form-control" placeholder="0,00" step="0.01" min="0.01" required></div>
+        <div class="form-group"><label class="form-label">Mês</label><input type="month" name="month" class="form-control" value="{{ current_month }}"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalOrcamento')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Orçamento</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — FinançasPro{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<style>
+.trend-up{color:var(--green)}.trend-down{color:var(--red)}
+.tx-row-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.goal-bar{margin-top:10px}
+.bgt-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.bgt-info{flex:1;min-width:0}
+.bgt-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bgt-amounts{font-size:12px;color:var(--text3);margin-top:2px}
+.chart-container{position:relative;height:220px}
+</style>
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi-card accent">
+    <div class="kpi-label">Saldo do Mês</div>
+    <div class="kpi-value {{ 'positive' if saldo >= 0 else 'negative' }}">R$ {{ '{:,.2f}'.format(saldo).replace(',','X').replace('.',',').replace('X','.') }}</div>
+    <div class="kpi-sub">{{ today }}</div>
+    <div class="kpi-icon">💰</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">Receitas</div>
+    <div class="kpi-value positive">R$ {{ '{:,.2f}'.format(receitas).replace(',','X').replace('.',',').replace('X','.') }}</div>
+    <div class="kpi-sub">Entradas do mês</div>
+    <div class="kpi-icon">📈</div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-label">Despesas</div>
+    <div class="kpi-value negative">R$ {{ '{:,.2f}'.format(despesas).replace(',','X').replace('.',',').replace('X','.') }}</div>
+    <div class="kpi-sub">Saídas do mês</div>
+    <div class="kpi-icon">📉</div>
+  </div>
+  <div class="kpi-card blue">
+    <div class="kpi-label">Taxa de Economia</div>
+    <div class="kpi-value {{ 'positive' if economia_pct >= 20 else 'negative' if economia_pct < 0 else '' }}">{{ economia_pct }}%</div>
+    <div class="kpi-sub">{{ 'Excelente 🎉' if economia_pct >= 20 else 'Atenção ⚠️' if economia_pct < 10 else 'Bom 👍' }}</div>
+    <div class="kpi-icon">🎯</div>
+  </div>
+</div>
+
+<!-- Charts row -->
+<div class="grid-2" style="margin-bottom:20px">
+  <div class="card col-span-2">
+    <div class="card-header">
+      <div><div class="card-title">Evolução Financeira</div><div class="card-subtitle">Receitas, despesas e saldo — últimos 12 meses</div></div>
+    </div>
+    <div class="chart-container"><canvas id="lineChart" aria-label="Gráfico de linha: evolução financeira" role="img"></canvas></div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Receitas vs Despesas</div><div class="card-subtitle">Comparativo mensal</div></div>
+    </div>
+    <div class="chart-container"><canvas id="barChart" aria-label="Gráfico de colunas: receitas vs despesas" role="img"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Despesas por Categoria</div><div class="card-subtitle">Distribuição do mês atual</div></div>
+    </div>
+    <div style="position:relative;height:200px;display:flex;align-items:center;justify-content:center">
+      <canvas id="pieChart" aria-label="Gráfico pizza: despesas por categoria" role="img"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Recent + Goals + Budgets -->
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Transações Recentes</div>
+      <a href="{{ url_for('transacoes') }}" class="btn btn-secondary btn-sm">Ver todas</a>
+    </div>
+    {% if recent %}
+    <div style="display:flex;flex-direction:column;gap:4px">
+      {% for tx in recent %}
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div class="tx-row-icon" style="background:{{ tx.cat_color or '#94a3b8' }}22">{{ tx.cat_icon or '💳' }}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ tx.description }}</div>
+          <div style="font-size:12px;color:var(--text3)">{{ tx.cat_name or 'Sem categoria' }} · {{ tx.date }}</div>
+        </div>
+        <div class="{{ 'amount-pos' if tx.type=='receita' else 'amount-neg' }}" style="font-size:13px;white-space:nowrap">
+          {{ '+' if tx.type=='receita' else '-' }}R$ {{ '{:,.2f}'.format(tx.amount).replace(',','X').replace('.',',').replace('X','.') }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-state-icon">💸</div><div class="empty-state-title">Nenhuma transação</div><p>Adicione sua primeira transação</p></div>
+    {% endif %}
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <!-- Goals -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Metas</div>
+        <a href="{{ url_for('metas') }}" class="btn btn-secondary btn-sm">Gerenciar</a>
+      </div>
+      {% if goals %}
+      {% for g in goals %}
+      {% set pct = [[(g.current_amount / g.target_amount * 100) if g.target_amount > 0 else 0, 0]|max, 100]|min %}
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:13px;font-weight:600">{{ g.name }}</span>
+          <span style="font-size:12px;color:var(--text3)">{{ pct|round|int }}%</span>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:4px">R$ {{ '{:,.2f}'.format(g.current_amount).replace(',','X').replace('.',',').replace('X','.') }} / R$ {{ '{:,.2f}'.format(g.target_amount).replace(',','X').replace('.',',').replace('X','.') }}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:{{ pct }}%;background:{{ g.color or 'var(--accent)' }}"></div></div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:24px"><div class="empty-state-icon" style="font-size:32px">🎯</div><div class="empty-state-title" style="font-size:14px">Sem metas</div></div>
+      {% endif %}
+    </div>
+
+    <!-- Budgets -->
+    {% if budgets %}
+    <div class="card">
+      <div class="card-header"><div class="card-title">Orçamentos do Mês</div><a href="{{ url_for('metas') }}" class="btn btn-secondary btn-sm">Ver mais</a></div>
+      {% for b in budgets[:4] %}
+      {% set pct = [(b.spent / b.amount * 100) if b.amount > 0 else 0, 100]|min %}
+      <div class="bgt-row">
+        <div style="font-size:20px">{{ b.cat_icon or '📌' }}</div>
+        <div class="bgt-info">
+          <div class="bgt-name">{{ b.cat_name }}</div>
+          <div class="bgt-amounts">R$ {{ '{:,.2f}'.format(b.spent).replace(',','X').replace('.',',').replace('X','.') }} de R$ {{ '{:,.2f}'.format(b.amount).replace(',','X').replace('.',',').replace('X','.') }}</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:{{ pct }}%;background:{{ '#dc2626' if pct > 90 else '#d97706' if pct > 70 else b.cat_color or 'var(--green)' }}"></div></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:{{ 'var(--red)' if pct > 90 else 'var(--yellow)' if pct > 70 else 'var(--green)' }}">{{ pct|round|int }}%</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const monthsData = {{ months_data|safe }};
+const catDespesas = {{ cat_despesas|safe }};
+const labels = monthsData.map(d=>d.month);
+const rec = monthsData.map(d=>d.receitas);
+const dep = monthsData.map(d=>d.despesas);
+const sal = monthsData.map(d=>d.saldo);
+const isDark = ()=>document.documentElement.getAttribute('data-theme')==='dark';
+const grid = ()=>isDark()?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)';
+const txt = ()=>isDark()?'#94a3b8':'#64748b';
+
+Chart.defaults.font.family="'DM Sans',sans-serif";
+Chart.defaults.font.size=12;
+
+const lineChart = new Chart(document.getElementById('lineChart'),{
+  type:'line',
+  data:{labels,datasets:[
+    {label:'Receitas',data:rec,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.08)',tension:.4,pointRadius:3,borderWidth:2,fill:true},
+    {label:'Despesas',data:dep,borderColor:'#f87171',backgroundColor:'rgba(248,113,113,.08)',tension:.4,pointRadius:3,borderWidth:2,fill:true},
+    {label:'Saldo',data:sal,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.05)',tension:.4,pointRadius:3,borderWidth:2,fill:true,borderDash:[6,3]}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:txt(),usePointStyle:true,pointStyle:'circle',boxWidth:8}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt(c.raw)}`}}},scales:{x:{ticks:{color:txt()},grid:{color:grid()}},y:{ticks:{color:txt(),callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:grid()}}}}
+});
+
+const barChart = new Chart(document.getElementById('barChart'),{
+  type:'bar',
+  data:{labels,datasets:[
+    {label:'Receitas',data:rec,backgroundColor:'rgba(34,197,94,.7)',borderRadius:6},
+    {label:'Despesas',data:dep,backgroundColor:'rgba(248,113,113,.7)',borderRadius:6}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:txt(),usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt(c.raw)}`}}},scales:{x:{ticks:{color:txt()},grid:{display:false}},y:{ticks:{color:txt(),callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:grid()}}}}
+});
+
+const pieChart = new Chart(document.getElementById('pieChart'),{
+  type:'doughnut',
+  data:{
+    labels:catDespesas.length?catDespesas.map(c=>c.name):['Sem dados'],
+    datasets:[{data:catDespesas.length?catDespesas.map(c=>c.total):[1],backgroundColor:catDespesas.length?catDespesas.map(c=>c.color):['#e2e8f0'],borderWidth:0,hoverOffset:8}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.raw)}`}}}}
+});
+
+// Update charts on theme change
+const obs=new MutationObserver(()=>{
+  [lineChart,barChart,pieChart].forEach(ch=>{
+    if(ch.options.scales){Object.values(ch.options.scales).forEach(s=>{if(s.ticks)s.ticks.color=txt();if(s.grid)s.grid.color=grid()})}
+    if(ch.options.plugins?.legend?.labels)ch.options.plugins.legend.labels.color=txt();
+    ch.update();
+  });
+});
+obs.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+</script>
+{% endblock %}

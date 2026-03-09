@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Relatórios — FinançasPro{% endblock %}
+{% block page_title %}Relatórios{% endblock %}
+{% block content %}
+<!-- Filtros -->
+<div class="card" style="margin-bottom:20px">
+  <form method="GET" style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div class="form-group" style="margin:0">
+      <label class="form-label">Mês Inicial</label>
+      <input type="month" name="mes_inicio" class="form-control" value="{{ mes_inicio }}">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label class="form-label">Mês Final</label>
+      <input type="month" name="mes_fim" class="form-control" value="{{ mes_fim }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Atualizar</button>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <a href="{{ url_for('exportar_csv', mes_inicio=mes_inicio, mes_fim=mes_fim) }}" class="btn btn-secondary">📊 Exportar CSV</a>
+      <a href="{{ url_for('exportar_pdf', mes_inicio=mes_inicio, mes_fim=mes_fim) }}" class="btn btn-primary">📄 Exportar PDF</a>
+    </div>
+  </form>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+  <div class="kpi-card green">
+    <div class="kpi-label">Total Receitas</div>
+    <div class="kpi-value positive">R$ {{ '{:,.2f}'.format(total_r).replace(',','X').replace('.',',').replace('X','.') }}</div>
+    <div class="kpi-sub">{{ mes_inicio }} a {{ mes_fim }}</div>
+    <div class="kpi-icon">📈</div>
+  </div>
+  <div class="kpi-card red">
+    <div class="kpi-label">Total Despesas</div>
+    <div class="kpi-value negative">R$ {{ '{:,.2f}'.format(total_d).replace(',','X').replace('.',',').replace('X','.') }}</div>
+    <div class="kpi-sub">{{ mes_inicio }} a {{ mes_fim }}</div>
+    <div class="kpi-icon">📉</div>
+  </div>
+  <div class="kpi-card {{ 'green' if saldo >= 0 else 'red' }}">
+    <div class="kpi-label">Saldo do Período</div>
+    <div class="kpi-value {{ 'positive' if saldo >= 0 else 'negative' }}">R$ {{ '{:,.2f}'.format(saldo).replace(',','X').replace('.',',').replace('X','.') }}</div>
+    <div class="kpi-sub">{{ 'Positivo ✅' if saldo >= 0 else 'Negativo ⚠️' }}</div>
+    <div class="kpi-icon">💰</div>
+  </div>
+</div>
+
+<!-- Resumo por categoria + Tabela -->
+<div class="grid-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Por Categoria</div></div>
+    {% if cat_summary %}
+    <div style="display:flex;flex-direction:column;gap:8px">
+      {% for (name,color,type),total in cat_summary.items()|sort(attribute='1',reverse=True) %}
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:10px;height:10px;border-radius:50%;background:{{ color }};flex-shrink:0"></div>
+        <div style="flex:1;font-size:13px">{{ name }}</div>
+        <span class="badge {{ 'badge-green' if type=='receita' else 'badge-red' }}" style="font-size:10px">{{ type }}</span>
+        <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:{{ color }}">R$ {{ '{:,.2f}'.format(total).replace(',','X').replace('.',',').replace('X','.') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="empty-state" style="padding:24px"><div class="empty-state-title">Nenhum dado</div></div>{% endif %}
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Informações do Relatório</div></div>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:14px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Período</span><strong>{{ mes_inicio }} → {{ mes_fim }}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Transações</span><strong>{{ txs|length }}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Receitas totais</span><strong style="color:var(--green)">R$ {{ '{:,.2f}'.format(total_r).replace(',','X').replace('.',',').replace('X','.') }}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Despesas totais</span><strong style="color:var(--red)">R$ {{ '{:,.2f}'.format(total_d).replace(',','X').replace('.',',').replace('X','.') }}</strong></div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:space-between"><span style="color:var(--text2)">Saldo final</span><strong style="font-size:16px;color:{{ 'var(--green)' if saldo>=0 else 'var(--red)' }}">R$ {{ '{:,.2f}'.format(saldo).replace(',','X').replace('.',',').replace('X','.') }}</strong></div>
+      {% if total_r > 0 %}<div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Taxa de economia</span><strong>{{ ((saldo/total_r)*100)|round(1) }}%</strong></div>{% endif %}
+    </div>
+    <div style="margin-top:20px;display:flex;gap:8px">
+      <a href="{{ url_for('exportar_csv', mes_inicio=mes_inicio, mes_fim=mes_fim) }}" class="btn btn-secondary" style="flex:1;justify-content:center">📊 CSV</a>
+      <a href="{{ url_for('exportar_pdf', mes_inicio=mes_inicio, mes_fim=mes_fim) }}" class="btn btn-primary" style="flex:1;justify-content:center">📄 PDF</a>
+    </div>
+  </div>
+</div>
+
+<!-- Tabela completa -->
+<div class="card" style="padding:0">
+  <div style="padding:20px 20px 0;display:flex;align-items:center;justify-content:space-between">
+    <h3 style="font-size:15px;font-weight:600">Transações do Período</h3>
+    <span style="font-size:13px;color:var(--text3)">{{ txs|length }} registros</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th class="text-right">Valor</th></tr></thead>
+      <tbody>
+        {% if txs %}
+        {% for tx in txs %}
+        <tr>
+          <td style="white-space:nowrap;font-size:13px;color:var(--text3)">{{ tx.date }}</td>
+          <td style="font-size:14px">{{ tx.description }}</td>
+          <td>
+            {% if tx.cat_name %}<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 7px;background:{{ tx.cat_color }}22;border-radius:20px;font-size:12px;font-weight:600;color:{{ tx.cat_color }}">{{ tx.cat_icon }} {{ tx.cat_name }}</span>
+            {% else %}<span style="color:var(--text3);font-size:13px">—</span>{% endif %}
+          </td>
+          <td><span class="badge {{ 'badge-green' if tx.type=='receita' else 'badge-red' }}">{{ '↑' if tx.type=='receita' else '↓' }} {{ tx.type|title }}</span></td>
+          <td class="text-right {{ 'amount-pos' if tx.type=='receita' else 'amount-neg' }}" style="font-size:13px">{{ '+' if tx.type=='receita' else '-' }}R$ {{ '{:,.2f}'.format(tx.amount).replace(',','X').replace('.',',').replace('X','.') }}</td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="5"><div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">Nenhuma transação no período</div></div></td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

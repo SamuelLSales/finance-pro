@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Transações — FinançasPro{% endblock %}
+{% block page_title %}Transações{% endblock %}
+{% block content %}
+<!-- Toolbar -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+  <form method="GET" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1">
+    <input type="text" name="busca" class="form-control" placeholder="Buscar..." value="{{ search }}" style="width:200px">
+    <select name="tipo" class="form-control" style="width:140px">
+      <option value="">Todos os tipos</option>
+      <option value="receita" {{ 'selected' if tipo=='receita' }}>Receita</option>
+      <option value="despesa" {{ 'selected' if tipo=='despesa' }}>Despesa</option>
+    </select>
+    <select name="categoria" class="form-control" style="width:160px">
+      <option value="">Todas as categorias</option>
+      {% for c in cats %}<option value="{{ c.id }}" {{ 'selected' if cat_id==c.id|string }}>{{ c.icon }} {{ c.name }}</option>{% endfor %}
+    </select>
+    <input type="month" name="mes" class="form-control" value="{{ mes }}" style="width:160px">
+    <button type="submit" class="btn btn-primary">Filtrar</button>
+    {% if search or tipo or cat_id or mes %}<a href="{{ url_for('transacoes') }}" class="btn btn-secondary">Limpar</a>{% endif %}
+  </form>
+  <button class="btn btn-primary" onclick="openModal('modalNova')">➕ Nova Transação</button>
+</div>
+
+<!-- Table -->
+<div class="card" style="padding:0">
+  <div class="table-wrap">
+    <table role="grid" aria-label="Lista de transações">
+      <thead>
+        <tr>
+          <th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th class="text-right">Valor</th><th class="text-center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if txs %}
+        {% for tx in txs %}
+        <tr>
+          <td style="white-space:nowrap;color:var(--text3);font-size:13px">{{ tx.date }}</td>
+          <td>
+            <div style="font-weight:500">{{ tx.description }}</div>
+            {% if tx.notes %}<div style="font-size:12px;color:var(--text3)">{{ tx.notes[:60] }}{{ '…' if tx.notes|length > 60 }}</div>{% endif %}
+          </td>
+          <td>
+            {% if tx.cat_name %}
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;background:{{ tx.cat_color }}22;border-radius:20px;font-size:12px;font-weight:600;color:{{ tx.cat_color }}">{{ tx.cat_icon }} {{ tx.cat_name }}</span>
+            {% else %}<span class="badge badge-gray">—</span>{% endif %}
+          </td>
+          <td><span class="badge {{ 'badge-green' if tx.type=='receita' else 'badge-red' }}">{{ '↑ Receita' if tx.type=='receita' else '↓ Despesa' }}</span></td>
+          <td class="text-right {{ 'amount-pos' if tx.type=='receita' else 'amount-neg' }}" style="font-size:14px">
+            {{ '+' if tx.type=='receita' else '-' }}R$ {{ '{:,.2f}'.format(tx.amount).replace(',','X').replace('.',',').replace('X','.') }}
+          </td>
+          <td class="text-center">
+            <div style="display:flex;gap:4px;justify-content:center">
+              <button class="btn btn-secondary btn-sm" onclick="editarTx({{ tx.id }},'{{ tx.description|e }}',{{ tx.amount }},'{{ tx.type }}','{{ tx.category_id or '' }}','{{ tx.date }}','{{ (tx.notes or '')|e }}')" aria-label="Editar transação {{ tx.description }}">✏️</button>
+              <form method="POST" action="{{ url_for('excluir_transacao', tid=tx.id) }}" style="display:inline" onsubmit="return confirm('Excluir esta transação?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm" aria-label="Excluir transação {{ tx.description }}">🗑️</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="6"><div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Nenhuma transação encontrada</div><p>Tente ajustar os filtros ou adicione uma nova transação</p></div></td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Paginação -->
+{% if pages > 1 %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;flex-wrap:wrap;gap:8px">
+  <span style="font-size:13px;color:var(--text3)">{{ total }} transações</span>
+  <div style="display:flex;gap:4px">
+    {% for p in range(1, pages+1) %}
+    <a href="?page={{ p }}&tipo={{ tipo }}&categoria={{ cat_id }}&mes={{ mes }}&busca={{ search }}" class="btn {{ 'btn-primary' if p==page else 'btn-secondary' }} btn-sm">{{ p }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal Nova -->
+<div class="modal-overlay" id="modalNova" role="dialog" aria-modal="true" aria-labelledby="modalNovaTitle" onclick="if(event.target===this)closeModal('modalNova')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalNovaTitle">Nova Transação</span>
+      <button class="modal-close" onclick="closeModal('modalNova')" aria-label="Fechar">✕</button>
+    </div>
+    <form method="POST" action="{{ url_for('nova_transacao') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="n_type">Tipo *</label>
+          <select id="n_type" name="type" class="form-control" required>
+            <option value="receita">📈 Receita</option>
+            <option value="despesa">📉 Despesa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="n_date">Data *</label>
+          <input type="date" id="n_date" name="date" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="n_desc">Descrição *</label>
+        <input type="text" id="n_desc" name="description" class="form-control" placeholder="Ex: Salário de março" required maxlength="200">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="n_amount">Valor (R$) *</label>
+          <input type="number" id="n_amount" name="amount" class="form-control" placeholder="0,00" step="0.01" min="0.01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="n_cat">Categoria</label>
+          <select id="n_cat" name="category_id" class="form-control">
+            <option value="">— Sem categoria —</option>
+            {% for c in cats %}<option value="{{ c.id }}">{{ c.icon }} {{ c.name }} ({{ 'receita' if c.type=='receita' else 'despesa' }})</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="n_notes">Observações</label>
+        <input type="text" id="n_notes" name="notes" class="form-control" placeholder="Opcional..." maxlength="500">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalNova')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar transação</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Editar -->
+<div class="modal-overlay" id="modalEditar" role="dialog" aria-modal="true" aria-labelledby="modalEditarTitle" onclick="if(event.target===this)closeModal('modalEditar')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalEditarTitle">Editar Transação</span>
+      <button class="modal-close" onclick="closeModal('modalEditar')" aria-label="Fechar">✕</button>
+    </div>
+    <form method="POST" id="formEditar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="e_type">Tipo</label>
+          <select id="e_type" name="type" class="form-control">
+            <option value="receita">📈 Receita</option>
+            <option value="despesa">📉 Despesa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="e_date">Data</label>
+          <input type="date" id="e_date" name="date" class="form-control" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="e_desc">Descrição</label>
+        <input type="text" id="e_desc" name="description" class="form-control" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="e_amount">Valor (R$)</label>
+          <input type="number" id="e_amount" name="amount" class="form-control" step="0.01" min="0.01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="e_cat">Categoria</label>
+          <select id="e_cat" name="category_id" class="form-control">
+            <option value="">— Sem categoria —</option>
+            {% for c in cats %}<option value="{{ c.id }}">{{ c.icon }} {{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="e_notes">Observações</label>
+        <input type="text" id="e_notes" name="notes" class="form-control">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditar')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Atualizar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Set today as default date for new transaction
+document.getElementById('n_date').value = new Date().toISOString().split('T')[0];
+
+function editarTx(id, desc, amount, type, catId, date, notes) {
+  document.getElementById('formEditar').action = `/transacoes/${id}/editar`;
+  document.getElementById('e_desc').value = desc;
+  document.getElementById('e_amount').value = amount;
+  document.getElementById('e_type').value = type;
+  document.getElementById('e_date').value = date;
+  document.getElementById('e_notes').value = notes;
+  const sel = document.getElementById('e_cat');
+  if (catId) { for (let o of sel.options) { if (o.value == catId) { o.selected = true; break; } } }
+  else sel.value = '';
+  openModal('modalEditar');
+}
+</script>
+{% endblock %}

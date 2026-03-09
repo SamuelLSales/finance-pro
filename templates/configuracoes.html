@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Configurações — FinançasPro{% endblock %}
+{% block page_title %}Configurações{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <!-- Perfil -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="card">
+      <div class="card-header"><div class="card-title">👤 Perfil e Aparência</div></div>
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="perfil">
+        <div class="form-group"><label class="form-label">Nome</label><input type="text" name="name" class="form-control" value="{{ user.name }}" required></div>
+        <div class="form-group"><label class="form-label">E-mail</label><input type="email" class="form-control" value="{{ user.email }}" disabled style="opacity:.6"></div>
+        <div class="form-group">
+          <label class="form-label">Tema</label>
+          <select name="theme" class="form-control">
+            <option value="light" {{ 'selected' if user.theme=='light' }}>☀️ Claro</option>
+            <option value="dark" {{ 'selected' if user.theme=='dark' }}>🌙 Escuro</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar Perfil</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔒 Alterar Senha</div></div>
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="senha">
+        <div class="form-group"><label class="form-label">Senha Atual</label><input type="password" name="current_password" class="form-control" required autocomplete="current-password"></div>
+        <div class="form-group"><label class="form-label">Nova Senha</label><input type="password" name="new_password" class="form-control" minlength="8" required autocomplete="new-password"></div>
+        <div class="form-group"><label class="form-label">Confirmar Nova Senha</label><input type="password" name="confirm_password" class="form-control" minlength="8" required></div>
+        <button type="submit" class="btn btn-primary">Alterar Senha</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Categorias -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🏷️ Categorias ({{ cats|length }})</div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modalCategoria')">➕ Nova</button>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--green);margin-bottom:8px">Receitas</div>
+      {% for c in cats if c.type=='receita' %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:20px">{{ c.icon }}</span>
+        <div style="width:10px;height:10px;border-radius:50%;background:{{ c.color }};flex-shrink:0"></div>
+        <span style="flex:1;font-size:14px;font-weight:500">{{ c.name }}</span>
+        <form method="POST" onsubmit="return confirm('Excluir categoria? Transações associadas perderão a categoria.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="excluir_categoria">
+          <input type="hidden" name="cat_id" value="{{ c.id }}">
+          <button type="submit" class="btn btn-danger btn-sm" aria-label="Excluir {{ c.name }}">🗑️</button>
+        </form>
+      </div>
+      {% else %}<p style="font-size:13px;color:var(--text3)">Nenhuma categoria de receita</p>{% endfor %}
+    </div>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--red);margin-bottom:8px">Despesas</div>
+      {% for c in cats if c.type=='despesa' %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:20px">{{ c.icon }}</span>
+        <div style="width:10px;height:10px;border-radius:50%;background:{{ c.color }};flex-shrink:0"></div>
+        <span style="flex:1;font-size:14px;font-weight:500">{{ c.name }}</span>
+        <form method="POST" onsubmit="return confirm('Excluir categoria?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="excluir_categoria">
+          <input type="hidden" name="cat_id" value="{{ c.id }}">
+          <button type="submit" class="btn btn-danger btn-sm" aria-label="Excluir {{ c.name }}">🗑️</button>
+        </form>
+      </div>
+      {% else %}<p style="font-size:13px;color:var(--text3)">Nenhuma categoria de despesa</p>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal Categoria -->
+<div class="modal-overlay" id="modalCategoria" role="dialog" aria-modal="true" aria-labelledby="catTitle" onclick="if(event.target===this)closeModal('modalCategoria')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="catTitle">🏷️ Nova Categoria</span>
+      <button class="modal-close" onclick="closeModal('modalCategoria')" aria-label="Fechar">✕</button>
+    </div>
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="nova_categoria">
+      <div class="form-group"><label class="form-label">Nome *</label><input type="text" name="cat_name" class="form-control" placeholder="Ex: Viagens" required maxlength="50"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo *</label>
+          <select name="cat_type" class="form-control" required>
+            <option value="receita">📈 Receita</option>
+            <option value="despesa">📉 Despesa</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Ícone (emoji)</label><input type="text" name="cat_icon" class="form-control" placeholder="✈️" maxlength="4" value="💰"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Cor</label><input type="color" name="cat_color" class="form-control" value="#6366f1" style="padding:4px;height:40px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modalCategoria')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Criar Categoria</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
