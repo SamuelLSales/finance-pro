@@ -1,147 +1,147 @@
-# FinançasPro AI Coding Instructions
+# Instruções de Codificação IA para FinançasPro
 
-## Project Overview
-FinançasPro is a personal finance management web app built with **Flask + SQLite** (Python backend) and **Chart.js** visualization. Supports transactions, budgets, goals, reports with CSV/PDF export, and theme switching (light/dark).
+## Visão Geral do Projeto
+FinançasPro é um aplicativo web de gerenciamento de finanças pessoais construído com **Flask + SQLite** (backend Python) e visualização **Chart.js**. Suporta transações, orçamentos, metas, relatórios com exportação CSV/PDF e alternância de tema (claro/escuro).
 
-**Tech Stack**: Flask 2, SQLite3, ReportLab (PDF), Chart.js, Jinja2 templates, Vanilla JS
+**Stack Tecnológico**: Flask 2, SQLite3, ReportLab (PDF), Chart.js, templates Jinja2, JavaScript Vanilla
 
-**Key Files**: `app.py` (530 lines, all routes & logic), `seed.py` (demo data), `templates/base.html` (layout system)
-
----
-
-## Architecture & Data Flow
-
-### Database Schema
-Single SQLite DB (`instance/financas.db`). Key tables:
-- **users**: Profile, theme preference, auth
-- **categories**: Predefined types (Salário, Alimentação, etc.) with emoji icons & hex colors
-- **transactions**: Core data—amount, type (receita/despesa), date, category_id, notes
-- **goals**: User savings targets with progress tracking
-- **budgets**: Category spending caps per month
-- **sessions**: Token-based auth (7-day expiry)
-
-**Critical Pattern**: All tables have `user_id` with `ON DELETE CASCADE`—deletion is automatic.
-
-### Request Flow
-1. **Authentication**: Session tokens stored in `sessions` table. `get_current_user()` validates token expiry.
-2. **Route Decorators**: `@login_required` redirects to `/login` if no valid session.
-3. **CSRF Protection**: All POST forms require `csrf_token` from session; validated via `validate_csrf()`.
-4. **Database Context**: `g.db` connection per request, auto-closed in `@app.teardown_appcontext`.
-
-### Data Processing Patterns
-- **Aggregation in Routes**: Dashboard calculates KPIs (receitas/despesas/saldo) with SQL SUM+GROUP BY, not ORM.
-- **Date Filtering**: Uses `date LIKE '%Y-%m%'` substring matching; `date.today().strftime('%Y-%m')` for current month.
-- **Currency**: Stored as REAL, displayed as `f"{value:,.2f}"`. Forms accept comma separators (`.replace(',', '.')`).
+**Arquivos-Chave**: `app.py` (530 linhas, todas as rotas e lógica), `seed.py` (dados de demonstração), `templates/base.html` (sistema de layout)
 
 ---
 
-## Security Implementation
-- **Password Hashing**: PBKDF2-SHA256 with 260,000 iterations + random salt (see `hash_password()`, `verify_password()`).
-- **Session Tokens**: Random 32-byte URL-safe tokens, 7-day expiry checked on every protected route.
-- **CSRF**: `hmac.compare_digest()` for timing-safe comparison.
-- **SQL Injection**: All queries parametrized; never concatenate user input into SQL.
-- **HTTP Headers**: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection` set in `@app.after_request`.
+## Arquitetura e Fluxo de Dados
+
+### Schema do Banco de Dados
+Banco SQLite único (`instance/financas.db`). Tabelas principais:
+- **users**: Perfil, preferência de tema, autenticação
+- **categories**: Tipos predefinidos (Salário, Alimentação, etc.) com ícones emoji e cores hex
+- **transactions**: Dados principais—valor, tipo (receita/despesa), data, category_id, notas
+- **goals**: Metas de economia do usuário com rastreamento de progresso
+- **budgets**: Limites de gastos por categoria por mês
+- **sessions**: Autenticação por token (expiração de 7 dias)
+
+**Padrão Crítico**: Todas as tabelas têm `user_id` com `ON DELETE CASCADE`—exclusão automática.
+
+### Fluxo de Requisições
+1. **Autenticação**: Tokens de sessão armazenados na tabela `sessions`. `get_current_user()` valida expiração do token.
+2. **Decoradores de Rota**: `@login_required` redireciona para `/login` se não houver sessão válida.
+3. **Proteção CSRF**: Todos os formulários POST requerem `csrf_token` da sessão; validado via `validate_csrf()`.
+4. **Contexto do Banco**: Conexão `g.db` por requisição, fechada automaticamente em `@app.teardown_appcontext`.
+
+### Padrões de Processamento de Dados
+- **Agregação em Rotas**: Dashboard calcula KPIs (receitas/despesas/saldo) com SQL SUM+GROUP BY, não ORM.
+- **Filtro de Data**: Usa correspondência de substring `date LIKE '%Y-%m%'`; `date.today().strftime('%Y-%m')` para mês atual.
+- **Moeda**: Armazenada como REAL, exibida como `f"{value:,.2f}"`. Formulários aceitam separadores de vírgula (`.replace(',', '.')`).
 
 ---
 
-## Frontend Conventions
-
-### CSS Architecture
-Single stylesheet (`static/css/app.css`) using **CSS variables** for theming:
-- Root vars: `--bg`, `--surface`, `--text`, `--accent`, `--green`, `--red`, etc.
-- Dark theme activated via `[data-theme="dark"]` selector on `<html>` tag.
-- Utility classes: `.card`, `.kpi-grid`, `.grid-2`, `.grid-3`, `.btn-icon`, `.modal-backdrop`.
-- No Tailwind/Bootstrap—custom design system using CSS Grid & Flexbox.
-
-### JavaScript Patterns
-- **No Framework**: Vanilla JS only; minimal, event-driven code in `static/js/app.js`.
-- **Modal System**: `toggleModal(id)` function; modals have `class="modal-backdrop"` and `hidden` attribute.
-- **Form Interactions**: 
-  - Currency inputs: Auto-format on blur (`,` separator for display, `.` for processing).
-  - Theme radio buttons: Toggle `data-theme` attribute on `<html>`, auto-dispatch POST to `/api/tema`.
-  - Mobile sidebar: Toggle `.open` class on sidebar; overlay auto-closes on click.
-- **Chart.js**: Used in `dashboard.html` & `relatorios.html`; passed data as JSON from Flask via `json.dumps()`.
-- **Flash Messages**: Auto-dismiss after 4 seconds with fade-out CSS transition.
-
-### Template Structure
-Base layout: `templates/base.html` (sidebar, topbar, content area).
-- Sidebar nav uses data attributes: `data-page="transacoes"` to highlight active nav items.
-- Page title injected via `{% block title %}`.
-- User context via `{% if current_user %}` and `{{ current_user.name }}`, `{{ current_user.theme }}`.
+## Implementação de Segurança
+- **Hash de Senha**: PBKDF2-SHA256 com 260.000 iterações + salt aleatório (veja `hash_password()`, `verify_password()`).
+- **Tokens de Sessão**: Tokens aleatórios de 32 bytes seguro para URL, expiração de 7 dias verificada em cada rota protegida.
+- **CSRF**: `hmac.compare_digest()` para comparação segura contra tempo.
+- **SQL Injection**: Todas as queries parametrizadas; nunca concatene entrada do usuário em SQL.
+- **Headers HTTP**: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection` definidos em `@app.after_request`.
 
 ---
 
-## Common Development Tasks
+## Convenções de Frontend
 
-### Adding a Transaction Field
-1. **Database**: Add column to `transactions` table in `init_db()` CREATE TABLE.
-2. **Seed**: Update `seed.py` to populate new field (required for demo data).
-3. **Form**: Add input field to `templates/form_transacao.html` modal.
-4. **Route Handler**: Parse new field in `nova_transacao()` / `editar_transacao()`.
-5. **Display**: Join in SQL query and render in `transacoes.html` table.
+### Arquitetura CSS
+Folha de estilo única (`static/css/app.css`) usando **variáveis CSS** para temas:
+- Variáveis raiz: `--bg`, `--surface`, `--text`, `--accent`, `--green`, `--red`, etc.
+- Tema escuro ativado via seletor `[data-theme="dark"]` na tag `<html>`.
+- Classes utilitárias: `.card`, `.kpi-grid`, `.grid-2`, `.grid-3`, `.btn-icon`, `.modal-backdrop`.
+- Sem Tailwind/Bootstrap—sistema de design personalizado usando CSS Grid e Flexbox.
 
-### Adding a New Category
-- Use `_seed_default_categories()` function pattern: tuple of (name, type, color, icon).
-- Both routes and seed reference categories by `(name, type)` tuple lookup.
-- Categories have fixed icon emoji + hex color; update these atomically.
+### Padrões JavaScript
+- **Sem Framework**: Apenas JavaScript vanilla; código mínimo e orientado a eventos em `static/js/app.js`.
+- **Sistema de Modal**: Função `toggleModal(id)`; modais têm `class="modal-backdrop"` e atributo `hidden`.
+- **Interações de Formulário**: 
+  - Inputs de moeda: Formatação automática ao sair (separador `,` para exibição, `.` para processamento).
+  - Botões de radio de tema: Alterna atributo `data-theme` em `<html>`, auto-envia POST para `/api/tema`.
+  - Barra lateral móvel: Alterna classe `.open` na barra lateral; overlay fecha automaticamente ao clicar.
+- **Chart.js**: Usado em `dashboard.html` e `relatorios.html`; dados passados como JSON do Flask via `json.dumps()`.
+- **Mensagens Flash**: Auto-descartadas após 4 segundos com transição CSS fade-out.
 
-### Exporting Reports
-- **CSV**: `csv.writer()` with `;` delimiter (PT-BR standard); UTF-8-sig encoding.
-- **PDF**: ReportLab with `SimpleDocTemplate`, `TableStyle`, conditional background colors.
-- Both use same date range filtering: `mes_inicio` to `mes_fim` as `YYYY-MM`.
-
-### Theme Switching
-- Client-side: JS toggles `data-theme` attribute on `<html>`, triggers CSS variable swap.
-- Server-side: POST to `/api/tema` saves preference in `users.theme` column.
-- Persists across sessions via `render_template()` context: `data-theme="{{ current_user.theme if current_user else 'light' }}"`.
+### Estrutura de Templates
+Layout base: `templates/base.html` (barra lateral, barra superior, área de conteúdo).
+- Navegação da barra lateral usa atributos de dados: `data-page="transacoes"` para destacar itens de nav ativos.
+- Título da página injetado via `{% block title %}`.
+- Contexto do usuário via `{% if current_user %}` e `{{ current_user.name }}`, `{{ current_user.theme }}`.
 
 ---
 
-## Project-Specific Patterns
+## Tarefas Comuns de Desenvolvimento
 
-### String Formatting
-- **Portuguese**: All UI text, error messages, and labels in PT-BR.
-- **Dates**: `%d/%m/%Y` for display, `%Y-%m-%d` for DB storage.
-- **Currency**: `f"{value:,.2f}"` (commas as thousands separator).
+### Adicionando um Campo de Transação
+1. **Banco de Dados**: Adicione coluna à tabela `transactions` em `init_db()` CREATE TABLE.
+2. **Seed**: Atualize `seed.py` para preencher o novo campo (necessário para dados de demonstração).
+3. **Formulário**: Adicione campo de entrada a `templates/form_transacao.html` modal.
+4. **Manipulador de Rota**: Analise o novo campo em `nova_transacao()` / `editar_transacao()`.
+5. **Exibição**: Faça join na query SQL e renderize na tabela `transacoes.html`.
 
-### Form Submission Pattern
+### Adicionando uma Nova Categoria
+- Use padrão de função `_seed_default_categories()`: tupla de (nome, tipo, cor, ícone).
+- Rotas e seed referenciam categorias por busca de tupla `(nome, tipo)`.
+- Categorias têm ícone emoji fixo + cor hex; atualize atomicamente.
+
+### Exportando Relatórios
+- **CSV**: `csv.writer()` com delimitador `;` (padrão PT-BR); codificação UTF-8-sig.
+- **PDF**: ReportLab com `SimpleDocTemplate`, `TableStyle`, cores de fundo condicionais.
+- Ambos usam mesmo filtro de intervalo de data: `mes_inicio` a `mes_fim` como `YYYY-MM`.
+
+### Alternância de Tema
+- Lado do cliente: JS alterna atributo `data-theme` em `<html>`, dispara troca de variáveis CSS.
+- Lado do servidor: POST para `/api/tema` salva preferência na coluna `users.theme`.
+- Persiste entre sessões via contexto `render_template()`: `data-theme="{{ current_user.theme if current_user else 'light' }}"`.
+
+---
+
+## Padrões Específicos do Projeto
+
+### Formatação de Strings
+- **Português**: Todos os textos da UI, mensagens de erro e rótulos em PT-BR.
+- **Datas**: `%d/%m/%Y` para exibição, `%Y-%m-%d` para armazenamento em DB.
+- **Moeda**: `f"{value:,.2f}"` (vírgulas como separador de milhares).
+
+### Padrão de Envio de Formulário
 ```python
-# Standard structure in all POST routes:
+# Estrutura padrão em todas as rotas POST:
 if not validate_csrf(request.form.get('csrf_token')): 
     flash('Token inválido.', 'error')
     return redirect(url_for('...'))
-# [process request]
+# [processar requisição]
 db.commit()
 flash('Ação realizada!', 'success')
 return redirect(url_for('...'))
 ```
 
-### Dashboard KPI Calculation
-Always use current month (`today.strftime('%Y-%m')`) for active KPIs; historical data in separate loop for charts.
+### Cálculo de KPI do Dashboard
+Sempre use o mês atual (`today.strftime('%Y-%m')`) para KPIs ativos; dados históricos em loop separado para gráficos.
 
 ---
 
-## Running & Debugging
+## Execução e Debug
 
-### Startup
+### Inicialização
 ```bash
-python seed.py        # Reset demo user + 10 months of transactions
-python app.py         # Run on localhost:5000 (debug mode)
+python seed.py        # Redefina usuário de demonstração + 10 meses de transações
+python app.py         # Execute em localhost:5000 (modo debug)
 ```
 
-### Test Credentials (after seed)
+### Credenciais de Teste (após seed)
 - Email: `demo@financaspro.com.br`
-- Password: `demo1234`
+- Senha: `demo1234`
 
-### Common Issues
-- **"Token invalid"**: CSRF token mismatch—verify `csrf_token()` called in form.
-- **Database locked**: SQLite is single-writer; restart Flask if hung on DB write.
-- **Theme not persisting**: Check `current_user.theme` is being set in POST handler before redirect.
+### Problemas Comuns
+- **"Token inválido"**: Incompatibilidade de token CSRF—verifique se `csrf_token()` é chamado no formulário.
+- **Banco de dados travado**: SQLite é single-writer; reinicie Flask se travar na escrita do DB.
+- **Tema não persiste**: Verifique se `current_user.theme` está sendo definido no manipulador POST antes do redirect.
 
 ---
 
-## Notes for AI Agents
-- **No async/background tasks**: Flask runs in debug mode; suitable for single-user demos only.
-- **No ORM**: All SQL is hand-written—maintain parameterization discipline.
-- **Frontend simplicity**: No npm/build step; update CSS vars or JS directly.
-- **Localization**: PT-BR throughout; preserve Portuguese in UI strings and comments.
+## Notas para Agentes IA
+- **Sem tarefas assíncronas/background**: Flask roda em modo debug; adequado apenas para demos single-user.
+- **Sem ORM**: Todo SQL é manual—mantenha disciplina de parametrização.
+- **Simplicidade de Frontend**: Sem npm/build step; atualize variáveis CSS ou JS diretamente.
+- **Localização**: PT-BR em toda parte; preserve português em strings de UI e comentários.
