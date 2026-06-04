@@ -1,0 +1,199 @@
+/* ==========================================================================
+   FinançasPro - Design System & Base CSS
+   ========================================================================== */
+
+:root {
+  /* Theme variables: Default Dark Mode */
+  --bg-base: #0A0B0F;          /* fundo geral */
+  --bg-card: #111318;          /* cards */
+  --bg-sidebar: #0D0E14;       /* sidebar */
+  --accent-green: #00D4AA;     /* receitas, positivo */
+  --accent-red: #FF4D6A;       /* despesas, negativo */
+  --accent-purple: #6C63FF;    /* metas, destaques */
+  --accent-yellow: #F5A623;    /* alertas, atenção */
+  --text-primary: #F0F2F5;
+  --text-muted: #6B7280;
+  --border: rgba(255, 255, 255, 0.06);
+  --input-bg: #1A1C24;
+  --card-hover-border: rgba(255, 255, 255, 0.12);
+  --sidebar-active-bg: rgba(0, 212, 170, 0.08);
+  --scrollbar-thumb: #2A2D3A;
+
+  /* Typography */
+  --font-heading: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+[data-theme='light'] {
+  --bg-base: #F4F6FA;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --text-primary: #0A0B0F;
+  --text-muted: #6B7280;
+  --border: rgba(0, 0, 0, 0.08);
+  --input-bg: #FFFFFF;
+  --card-hover-border: rgba(0, 0, 0, 0.16);
+  --sidebar-active-bg: rgba(0, 212, 170, 0.08);
+  --scrollbar-thumb: #C1C6D0;
+}
+
+/* Reset and Global Settings */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition: background-color 300ms ease, border-color 300ms ease;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+/* Base Component Classes */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  transition: border-color 200ms ease, background-color 300ms ease, box-shadow 200ms ease;
+}
+.card:hover {
+  border-color: var(--card-hover-border);
+}
+
+.btn-primary {
+  background-color: var(--accent-green);
+  color: #000000;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 150ms ease, transform 100ms ease;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 200ms ease, border-color 200ms ease, transform 100ms ease;
+}
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: var(--card-hover-border);
+}
+[data-theme='light'] .btn-secondary:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+.badge {
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+}
+
+.input-field {
+  background-color: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 200ms ease, background-color 300ms ease;
+}
+.input-field:focus {
+  border-color: var(--accent-purple);
+}
+
+/* Helper text */
+.font-mono {
+  font-family: var(--font-mono);
+}
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 350ms ease forwards;
+}
+
+/* Loading skeletons */
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg-base) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: loadingSkeleton 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes loadingSkeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

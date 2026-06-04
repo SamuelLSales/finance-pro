@@ -1,0 +1,9 @@
+services:
+  finance-pro:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finance-pro
+    ports:
+      - "80:80"
+    restart: always
