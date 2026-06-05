@@ -16,7 +16,8 @@ import {
   ChevronRight,
   CheckCircle2,
   AlertOctagon,
-  Info
+  Info,
+  LogOut
 } from 'lucide-react';
 import { 
   initialUser, 
@@ -30,12 +31,17 @@ import TransactionsSection from './components/TransactionsSection';
 import ReportsSection from './components/ReportsSection';
 import GoalsBudgetsSection from './components/GoalsBudgetsSection';
 import SettingsSection from './components/SettingsSection';
+import LoginSection from './components/LoginSection';
 import './App.css';
 
 function App() {
   // --- STATES & STORAGE ---
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('finance-pro-theme') || 'dark';
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('finance-pro-authenticated') === 'true';
   });
 
   const [user, setUser] = useState(() => {
@@ -109,6 +115,20 @@ function App() {
     }, 3000);
   };
 
+  const handleLoginSuccess = (loggedInUser) => {
+    setUser(loggedInUser);
+    setIsAuthenticated(true);
+    localStorage.setItem('finance-pro-authenticated', 'true');
+    localStorage.setItem('finance-pro-user', JSON.stringify(loggedInUser));
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('finance-pro-authenticated');
+    showToast('Você saiu da sua conta.', 'info');
+    setActiveTab('dashboard');
+  };
+
   // --- NAVIGATION TRANSITION ---
   const handleNavigate = (tab) => {
     setIsSidebarOpen(false);
@@ -159,6 +179,17 @@ function App() {
       </button>
     </div>
   );
+
+  if (!isAuthenticated) {
+    return (
+      <LoginSection 
+        onLoginSuccess={handleLoginSuccess}
+        theme={theme}
+        setTheme={setTheme}
+        showToast={showToast}
+      />
+    );
+  }
 
   return (
     <div className="app-container">
@@ -285,15 +316,43 @@ function App() {
         </div>
 
         {/* Sidebar Footer / User Info */}
-        <div className="sidebar-footer">
-          <div className="avatar">
-            {user.avatar}
+        <div className="sidebar-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+            <div 
+              className="avatar" 
+              title={isSidebarCollapsed ? "Sair da conta" : ""} 
+              onClick={isSidebarCollapsed ? handleLogout : undefined} 
+              style={{ cursor: isSidebarCollapsed ? 'pointer' : 'default' }}
+            >
+              {user.avatar}
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="user-info" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <span className="user-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</span>
+                <span className="user-email" style={{ fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</span>
+              </div>
+            )}
           </div>
           {!isSidebarCollapsed && (
-            <div className="user-info">
-              <span className="user-name">{user.name}</span>
-              <span className="user-email">{user.email}</span>
-            </div>
+            <button 
+              onClick={handleLogout}
+              className="logout-btn"
+              title="Sair da conta"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px',
+                borderRadius: '4px',
+                transition: 'all 150ms ease'
+              }}
+            >
+              <LogOut size={16} />
+            </button>
           )}
         </div>
       </aside>
