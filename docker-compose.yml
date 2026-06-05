@@ -7,3 +7,17 @@ services:
     ports:
       - "80:80"
     restart: always
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: finance-pro-tunnel
+    command:
+      - "http"
+      - "finance-pro:80"
+      - "--domain=wince-freckled-tribunal.ngrok-free.dev"
+    environment:
+      - NGROK_AUTHTOKEN=rd_3EicLqNlZhRneUndWHGiLDr7Ixa
+    depends_on:
+      - finance-pro
+    restart: always
+
