@@ -16,8 +16,7 @@ services:
       - "finance-pro:80"
       - "--domain=wince-freckled-tribunal.ngrok-free.dev"
     environment:
-      - NGROK_AUTHTOKEN=cr_3EicKyiFGrhFl7T7HDP3rhtYg1W
+      - NGROK_AUTHTOKEN=3EicKyiFGrhFl7T7HDP3rhtYg1W_do1fqpYHgag4miyQ39ou
     depends_on:
       - finance-pro
     restart: always
-
