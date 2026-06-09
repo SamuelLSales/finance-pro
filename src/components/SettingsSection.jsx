@@ -48,7 +48,8 @@ export const SettingsSection = ({
   setGoals,
   budgets,
   setBudgets,
-  showToast
+  showToast,
+  onDeleteAccount
 }) => {
   // --- STATE FOR PROFILE ---
   const [profileName, setProfileName] = useState(user.name);
@@ -67,6 +68,7 @@ export const SettingsSection = ({
 
   // --- STATE FOR DATA MANAGEMENT ---
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // --- HANDLERS ---
   
@@ -335,6 +337,44 @@ export const SettingsSection = ({
               </button>
             </div>
           </div>
+
+          {/* Card: Excluir Conta */}
+          <div className="card" style={{ border: '1px solid rgba(255, 77, 106, 0.15)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+              <Trash2 size={20} style={{ color: 'var(--accent-red)' }} />
+              <h2 className="font-heading" style={{ fontSize: '18px', margin: 0, color: 'var(--accent-red)' }}>Excluir Conta</h2>
+            </div>
+
+            <p className="text-muted" style={{ fontSize: '13px', lineHeight: 1.5, marginBottom: '20px' }}>
+              A exclusão da conta é permanente e removerá todo o seu perfil, transações, metas e configurações do navegador.
+            </p>
+
+            {user.email === 'samuel.lima21287@gmail.com' ? (
+              <span className="text-muted" style={{ fontSize: '12px', display: 'block', fontStyle: 'italic' }}>
+                A conta padrão de demonstração não pode ser excluída.
+              </span>
+            ) : (
+              <button 
+                onClick={() => setIsDeleteModalOpen(true)} 
+                className="btn-secondary" 
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: 8, 
+                  padding: '10px 16px', 
+                  borderRadius: '6px', 
+                  border: '1px solid var(--accent-red)', 
+                  background: 'transparent', 
+                  cursor: 'pointer', 
+                  color: 'var(--accent-red)', 
+                  fontWeight: 500 
+                }}
+              >
+                <Trash2 size={16} />
+                <span>Excluir Minha Conta</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* RIGHT COLUMN: Categories CRUD */}
@@ -538,6 +578,46 @@ export const SettingsSection = ({
                 style={{ backgroundColor: 'var(--accent-red)', color: '#FFFFFF' }}
               >
                 Confirmar e Resetar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DELETE ACCOUNT MODAL */}
+      {isDeleteModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content card" style={{ maxWidth: '400px', width: '90%', border: '1px solid var(--accent-red)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent-red)', marginBottom: '16px' }}>
+              <AlertTriangle size={24} />
+              <h3 className="modal-title font-heading" style={{ fontSize: '18px' }}>Excluir Conta Permanentemente?</h3>
+            </div>
+            
+            <p className="text-muted font-sans" style={{ fontSize: '14px', lineHeight: 1.5, marginBottom: '24px' }}>
+              Você está prestes a excluir sua conta <strong>{user.email}</strong>. 
+              Todas as suas transações, metas e orçamentos serão excluídos de forma definitiva do seu navegador.
+              Esta ação <strong>não poderá ser desfeita</strong>.
+            </p>
+
+            <div className="modal-footer" style={{ justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="btn-secondary"
+              >
+                Cancelar
+              </button>
+              
+              <button 
+                type="button"
+                onClick={() => {
+                  onDeleteAccount(user.email);
+                  setIsDeleteModalOpen(false);
+                }} 
+                className="btn-primary" 
+                style={{ backgroundColor: 'var(--accent-red)', color: '#FFFFFF' }}
+              >
+                Sim, Excluir Minha Conta
               </button>
             </div>
           </div>

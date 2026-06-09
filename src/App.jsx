@@ -187,6 +187,31 @@ function App() {
     setActiveTab('dashboard');
   };
 
+  const handleDeleteAccount = (emailToDelete) => {
+    const email = emailToDelete.toLowerCase();
+    
+    // Update users-list in localStorage
+    const savedUsers = localStorage.getItem('finance-pro-users-list');
+    if (savedUsers) {
+      const users = JSON.parse(savedUsers);
+      const updatedUsers = users.filter(u => u.email.toLowerCase() !== email);
+      localStorage.setItem('finance-pro-users-list', JSON.stringify(updatedUsers));
+    }
+    
+    // Clear user-scoped data
+    localStorage.removeItem(`finance-pro-categories-${email}`);
+    localStorage.removeItem(`finance-pro-transactions-${email}`);
+    localStorage.removeItem(`finance-pro-goals-${email}`);
+    localStorage.removeItem(`finance-pro-budgets-${email}`);
+    
+    // Log out
+    setIsAuthenticated(false);
+    localStorage.removeItem('finance-pro-authenticated');
+    localStorage.removeItem('finance-pro-user');
+    showToast('Sua conta foi excluída permanentemente.', 'info');
+    setActiveTab('dashboard');
+  };
+
   // --- NAVIGATION TRANSITION ---
   const handleNavigate = (tab) => {
     setIsSidebarOpen(false);
@@ -479,6 +504,7 @@ function App() {
                 budgets={budgets}
                 setBudgets={setBudgets}
                 showToast={showToast}
+                onDeleteAccount={handleDeleteAccount}
               />
             )}
           </>
