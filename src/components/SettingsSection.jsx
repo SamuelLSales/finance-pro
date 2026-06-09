@@ -221,12 +221,17 @@ export const SettingsSection = ({
 
   // Clear all data (Reset to initial)
   const handleClearData = () => {
-    // Reset to empty states or defaults
+    if (user && user.email) {
+      const email = user.email.toLowerCase();
+      localStorage.removeItem(`finance-pro-categories-${email}`);
+      localStorage.removeItem(`finance-pro-transactions-${email}`);
+      localStorage.removeItem(`finance-pro-goals-${email}`);
+      localStorage.removeItem(`finance-pro-budgets-${email}`);
+    }
+    
+    // Also remove global authenticated/user session
     localStorage.removeItem('finance-pro-user');
-    localStorage.removeItem('finance-pro-categories');
-    localStorage.removeItem('finance-pro-transactions');
-    localStorage.removeItem('finance-pro-goals');
-    localStorage.removeItem('finance-pro-budgets');
+    localStorage.removeItem('finance-pro-authenticated');
     
     // Clear and reload
     showToast('Todos os dados foram resetados.', 'success');

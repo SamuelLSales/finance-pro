@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   ArrowLeftRight, 
@@ -49,24 +49,34 @@ function App() {
     return saved ? JSON.parse(saved) : initialUser;
   });
 
+  // Keep track of which user's data is currently loaded in the state to prevent race conditions during login/logout
+  const loadedUserEmailRef = useRef(user ? user.email.toLowerCase() : '');
+
   const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('finance-pro-categories');
+    const email = user ? user.email.toLowerCase() : '';
+    const saved = localStorage.getItem(`finance-pro-categories-${email}`);
     return saved ? JSON.parse(saved) : initialCategories;
   });
 
   const [transactions, setTransactions] = useState(() => {
-    const saved = localStorage.getItem('finance-pro-transactions');
-    return saved ? JSON.parse(saved) : initialTransactions;
+    const email = user ? user.email.toLowerCase() : '';
+    const saved = localStorage.getItem(`finance-pro-transactions-${email}`);
+    if (saved) return JSON.parse(saved);
+    return email === 'samuel.lima21287@gmail.com' ? initialTransactions : [];
   });
 
   const [goals, setGoals] = useState(() => {
-    const saved = localStorage.getItem('finance-pro-goals');
-    return saved ? JSON.parse(saved) : initialGoals;
+    const email = user ? user.email.toLowerCase() : '';
+    const saved = localStorage.getItem(`finance-pro-goals-${email}`);
+    if (saved) return JSON.parse(saved);
+    return email === 'samuel.lima21287@gmail.com' ? initialGoals : [];
   });
 
   const [budgets, setBudgets] = useState(() => {
-    const saved = localStorage.getItem('finance-pro-budgets');
-    return saved ? JSON.parse(saved) : initialBudgets;
+    const email = user ? user.email.toLowerCase() : '';
+    const saved = localStorage.getItem(`finance-pro-budgets-${email}`);
+    if (saved) return JSON.parse(saved);
+    return email === 'samuel.lima21287@gmail.com' ? initialBudgets : [];
   });
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -86,25 +96,73 @@ function App() {
     localStorage.setItem('finance-pro-theme', theme);
   }, [theme]);
 
+  // Load new user data when logged-in user changes
   useEffect(() => {
-    localStorage.setItem('finance-pro-user', JSON.stringify(user));
+    if (user && user.email) {
+      const email = user.email.toLowerCase();
+      if (loadedUserEmailRef.current !== email) {
+        const savedCats = localStorage.getItem(`finance-pro-categories-${email}`);
+        setCategories(savedCats ? JSON.parse(savedCats) : initialCategories);
+
+        const savedTrans = localStorage.getItem(`finance-pro-transactions-${email}`);
+        setTransactions(savedTrans ? JSON.parse(savedTrans) : (email === 'samuel.lima21287@gmail.com' ? initialTransactions : []));
+
+        const savedGoals = localStorage.getItem(`finance-pro-goals-${email}`);
+        setGoals(savedGoals ? JSON.parse(savedGoals) : (email === 'samuel.lima21287@gmail.com' ? initialGoals : []));
+
+        const savedBudgets = localStorage.getItem(`finance-pro-budgets-${email}`);
+        setBudgets(savedBudgets ? JSON.parse(savedBudgets) : (email === 'samuel.lima21287@gmail.com' ? initialBudgets : []));
+
+        loadedUserEmailRef.current = email;
+      }
+    } else {
+      loadedUserEmailRef.current = '';
+    }
   }, [user]);
 
   useEffect(() => {
-    localStorage.setItem('finance-pro-categories', JSON.stringify(categories));
-  }, [categories]);
+    if (user) {
+      localStorage.setItem('finance-pro-user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('finance-pro-user');
+    }
+  }, [user]);
 
   useEffect(() => {
-    localStorage.setItem('finance-pro-transactions', JSON.stringify(transactions));
-  }, [transactions]);
+    if (user && user.email) {
+      const email = user.email.toLowerCase();
+      if (loadedUserEmailRef.current === email) {
+        localStorage.setItem(`finance-pro-categories-${email}`, JSON.stringify(categories));
+      }
+    }
+  }, [categories, user]);
 
   useEffect(() => {
-    localStorage.setItem('finance-pro-goals', JSON.stringify(goals));
-  }, [goals]);
+    if (user && user.email) {
+      const email = user.email.toLowerCase();
+      if (loadedUserEmailRef.current === email) {
+        localStorage.setItem(`finance-pro-transactions-${email}`, JSON.stringify(transactions));
+      }
+    }
+  }, [transactions, user]);
 
   useEffect(() => {
-    localStorage.setItem('finance-pro-budgets', JSON.stringify(budgets));
-  }, [budgets]);
+    if (user && user.email) {
+      const email = user.email.toLowerCase();
+      if (loadedUserEmailRef.current === email) {
+        localStorage.setItem(`finance-pro-goals-${email}`, JSON.stringify(goals));
+      }
+    }
+  }, [goals, user]);
+
+  useEffect(() => {
+    if (user && user.email) {
+      const email = user.email.toLowerCase();
+      if (loadedUserEmailRef.current === email) {
+        localStorage.setItem(`finance-pro-budgets-${email}`, JSON.stringify(budgets));
+      }
+    }
+  }, [budgets, user]);
 
   // --- TOAST NOTIFICATIONS ---
   const showToast = (message, type = 'success') => {
