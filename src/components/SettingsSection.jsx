@@ -69,18 +69,6 @@ export const SettingsSection = ({
   // --- STATE FOR DATA MANAGEMENT ---
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
-  const [usersList, setUsersList] = useState(() => {
-    const saved = localStorage.getItem('finance-pro-users-list');
-    if (saved) return JSON.parse(saved);
-    return [
-      {
-        name: "Samuel Lima",
-        email: "samuel.lima21287@gmail.com",
-        avatar: "SL"
-      }
-    ];
-  });
 
   // --- HANDLERS ---
   
@@ -257,27 +245,6 @@ export const SettingsSection = ({
     }, 1000);
   };
 
-  const handleDeleteSelectedUser = (emailToDelete) => {
-    const email = emailToDelete.toLowerCase();
-    
-    // Remove from localStorage users list
-    const updatedUsers = usersList.filter(u => u.email.toLowerCase() !== email);
-    setUsersList(updatedUsers);
-    localStorage.setItem('finance-pro-users-list', JSON.stringify(updatedUsers));
-    
-    // Clear user-scoped data
-    localStorage.removeItem(`finance-pro-categories-${email}`);
-    localStorage.removeItem(`finance-pro-transactions-${email}`);
-    localStorage.removeItem(`finance-pro-goals-${email}`);
-    localStorage.removeItem(`finance-pro-budgets-${email}`);
-    
-    showToast(`Conta ${email} excluída com sucesso.`, 'success');
-    
-    // If it was the logged-in user, trigger the log out
-    if (email === user.email.toLowerCase()) {
-      onDeleteAccount(email);
-    }
-  };
 
   return (
     <div className="fade-in font-sans">
@@ -372,94 +339,36 @@ export const SettingsSection = ({
             </div>
           </div>
 
-          {/* Card: Gerenciar Contas */}
-          <div className="card" style={{ border: '1px solid var(--border)' }}>
+          {/* Card: Excluir Conta */}
+          <div className="card" style={{ border: '1px solid rgba(255, 77, 106, 0.15)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
-              <User size={20} style={{ color: 'var(--accent-purple)' }} />
-              <h2 className="font-heading" style={{ fontSize: '18px', margin: 0 }}>Gerenciar Contas</h2>
+              <Trash2 size={20} style={{ color: 'var(--accent-red)' }} />
+              <h2 className="font-heading" style={{ fontSize: '18px', margin: 0, color: 'var(--accent-red)' }}>Excluir Conta</h2>
             </div>
 
             <p className="text-muted" style={{ fontSize: '13px', lineHeight: 1.5, marginBottom: '20px' }}>
-              Lista de contas cadastradas neste navegador. Você pode excluir qualquer conta (e todos os seus dados).
+              A exclusão da conta é permanente e removerá todo o seu perfil, transações, metas e configurações do navegador.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {usersList.map((u) => {
-                const isCurrentUser = u.email.toLowerCase() === user.email.toLowerCase();
-                const isDemoUser = u.email.toLowerCase() === 'samuel.lima21287@gmail.com';
-                
-                return (
-                  <div 
-                    key={u.email} 
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between', 
-                      padding: '12px', 
-                      background: 'rgba(255, 255, 255, 0.02)', 
-                      borderRadius: '6px',
-                      border: '1px solid var(--border)' 
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div 
-                        style={{ 
-                          width: '32px', 
-                          height: '32px', 
-                          borderRadius: '50%', 
-                          background: isCurrentUser ? 'var(--accent-green)' : 'rgba(255, 255, 255, 0.1)', 
-                          color: isCurrentUser ? '#000' : 'var(--text-primary)', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          fontSize: '12px', 
-                          fontWeight: 'bold',
-                          fontFamily: 'var(--font-mono)'
-                        }}
-                      >
-                        {u.avatar || u.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                          {u.name} {isCurrentUser && <span style={{ color: 'var(--accent-green)', fontSize: '11px', marginLeft: '4px' }}>(Você)</span>}
-                        </div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                          {u.email}
-                        </div>
-                      </div>
-                    </div>
-
-                    {isDemoUser ? (
-                      <span className="text-muted" style={{ fontSize: '11px', fontStyle: 'italic' }}>
-                        Padrão
-                      </span>
-                    ) : (
-                      <button 
-                        onClick={() => {
-                          setUserToDelete(u);
-                          setIsDeleteModalOpen(true);
-                        }} 
-                        className="btn-secondary" 
-                        style={{ 
-                          padding: '6px', 
-                          borderRadius: '4px', 
-                          border: '1px solid transparent', 
-                          background: 'transparent', 
-                          cursor: 'pointer', 
-                          color: 'var(--accent-red)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        title="Excluir Conta"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <button 
+              onClick={() => setIsDeleteModalOpen(true)} 
+              className="btn-secondary" 
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                padding: '10px 16px', 
+                borderRadius: '6px', 
+                border: '1px solid var(--accent-red)', 
+                background: 'transparent', 
+                cursor: 'pointer', 
+                color: 'var(--accent-red)', 
+                fontWeight: 500 
+              }}
+            >
+              <Trash2 size={16} />
+              <span>Excluir Minha Conta</span>
+            </button>
           </div>
         </div>
 
@@ -671,7 +580,7 @@ export const SettingsSection = ({
       )}
 
       {/* CONFIRM DELETE ACCOUNT MODAL */}
-      {isDeleteModalOpen && userToDelete && (
+      {isDeleteModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content card" style={{ maxWidth: '400px', width: '90%', border: '1px solid var(--accent-red)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--accent-red)', marginBottom: '16px' }}>
@@ -680,18 +589,15 @@ export const SettingsSection = ({
             </div>
             
             <p className="text-muted font-sans" style={{ fontSize: '14px', lineHeight: 1.5, marginBottom: '24px' }}>
-              Você está prestes a excluir a conta de <strong>{userToDelete.name}</strong> ({userToDelete.email}). 
-              Todas as transações, metas e orçamentos desta conta serão excluídos de forma definitiva do seu navegador.
+              Você está prestes a excluir sua conta <strong>{user.email}</strong>. 
+              Todas as suas transações, metas e orçamentos serão excluídos de forma definitiva do seu navegador.
               Esta ação <strong>não poderá ser desfeita</strong>.
             </p>
 
             <div className="modal-footer" style={{ justifyContent: 'flex-end', gap: '12px' }}>
               <button 
                 type="button"
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setUserToDelete(null);
-                }}
+                onClick={() => setIsDeleteModalOpen(false)}
                 className="btn-secondary"
               >
                 Cancelar
@@ -700,14 +606,13 @@ export const SettingsSection = ({
               <button 
                 type="button"
                 onClick={() => {
-                  handleDeleteSelectedUser(userToDelete.email);
+                  onDeleteAccount(user.email);
                   setIsDeleteModalOpen(false);
-                  setUserToDelete(null);
                 }} 
                 className="btn-primary" 
                 style={{ backgroundColor: 'var(--accent-red)', color: '#FFFFFF' }}
               >
-                Sim, Excluir Conta
+                Sim, Excluir Minha Conta
               </button>
             </div>
           </div>
